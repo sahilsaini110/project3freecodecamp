@@ -53,7 +53,7 @@ app.post("/api/shorturl", async function (req, res) {
         console.log(data);
         res.json({
           original_url: data.url,
-          short_url: data.__v
+          short_url: data._id
         })
       })
     }
@@ -66,6 +66,7 @@ app.post("/api/shorturl", async function (req, res) {
 
 app.get("/api/shorturl/:id", (req, res) =>{
   const id = req.params.id;
+  console.log(req.params.id);
   Url.findById(id, (err, data) =>{
     if(!data){
       res.json({ error:"invalid url"})
