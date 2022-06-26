@@ -1,5 +1,4 @@
 const dotenv = require("dotenv");
-
 dotenv.config();
 var express = require("express");
 var mongo = require("mongodb");
@@ -15,7 +14,7 @@ var router = express.Router;
 // Basic Configuration
 const port = process.env.PORT || 3000;
 
-mongoose.connect(process.env.DB_URI, { useNewUrlParser: true });
+mongoose.connect('mongodb+srv://sahilsaini110:sTweqfvmhk2yXfOY@cluster0.qm4f15a.mongodb.net/?retryWrites=true&w=majority', { useNewUrlParser: true });
 var db = mongoose.connection;
 db.on("error", console.error.bind(console, "connection error:"));
 db.once("open", function() {
