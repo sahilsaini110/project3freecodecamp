@@ -1,4 +1,3 @@
-"use strict";
 require('dotenv').config();
 var express = require("express");
 var mongo = require("mongodb");
@@ -6,86 +5,78 @@ var mongoose = require("mongoose");
 var bodyParser = require("body-parser");
 var cors = require("cors");
 var dns = require("dns");
+const { url } = require('inspector');
+const urlparser = require('url');
 var app = express();
 var router = express.Router;
+
 // Basic Configuration
-var port = process.env.PORT || 3000;
+const port = process.env.PORT || 3000;
 
-/** this project needs a db !! **/
 mongoose.connect(process.env.DB_URI, { useNewUrlParser: true });
-
 var db = mongoose.connection;
 db.on("error", console.error.bind(console, "connection error:"));
 db.once("open", function() {
   console.log("we're connected!");
 });
 
+
 //Schema n Model
-var urlSchema = new mongoose.Schema({
+var schema = new mongoose.Schema({
   id: Number,
   url: String
 });
-
-var urlModel = mongoose.model("url", urlSchema);
-
-app.use(cors());
-
-/** this project needs to parse POST bodies **/
-// you should mount the body-parser here
+var Url = mongoose.model("Url", schema);
 
 app.use(bodyParser.urlencoded({ extended: false }));
-app.use("/public", express.static(process.cwd() + "/public"));
+app.use(cors());
 
-app.get("/", function(req, res) {
-  res.sendFile(process.cwd() + "/views/index.html");
+app.use('/public', express.static(`${process.cwd()}/public`));
+
+app.get('/', function(req, res) {
+  res.sendFile(process.cwd() + '/views/index.html');
 });
 
-// your first API endpoint...
-app.get("/api/hello", function(req, res) {
-  res.json({ greeting: "hello API" });
-});
+// Your first API endpoint
 
-//mycode
-app.post("/api/shorturl", function(req, res) {
-  let urlRegex = /https:\/\/www.|http:\/\/www./g;
-  
-  dns.lookup(req.body.url.replace(urlRegex, ""), (err, address, family) => {
-    if (err) {
-      res.json({"error":"invalid URL"});
-    } else {
-      urlModel
-        .find()
-        .exec()
-        .then(data => {
-          new urlModel({
-            id: data.length + 1,
-            url: req.body.url
-          })
-            .save()
-            .then(() => {
-              res.json({
-                original_url: req.body.url,
-                short_url: data.length + 1
-              });
-            })
-            .catch(err => {
-              res.json(err);
-            });
-        });
+app.post("/api/shorturl", async function (req, res) {
+  console.log(req.body);
+  const bodyurl = req.body.url;
+
+  const something = dns.lookup(urlparser.parse(bodyurl).hostname, (error, address)=>{
+    if (!address){
+        res.json ({ error: "invalid url"})
+    } else{
+      const url = new Url({ url: bodyurl })
+      url.save((err, data) =>{
+        res.json({
+          original_url: data.url,
+          short_url: data.length +1
+        })
+      })
     }
-  });
+
+    console.log("dns" , error);
+    console.log("address", address);
+  })
+  console.log("something", something);
+  
 });
 
-//get
-app.get("/api/shorturl/:number", function(req, res) {
-  urlModel
-    .find({ id: req.params.number })
-    .exec()
-    .then(url => {
-      res.redirect(url[0]["url"]);
-    });
-});
+app.get("/api/shorturl/:id", (req, res) =>{
+  const id = req.params.id;
+  Url.findById(id, (err, data) =>{
+    if(!data){
+      res.json({ error:"invalid url"})
+    } else {
+      res.redirect(data.url)
+    }
+  })
+})
+
 
 app.listen(port, function() {
-  console.log("Node.js listening ...");
+  console.log(`Listening on port ${port}`);
 });
+
+
